@@ -1,0 +1,28 @@
+{
+	"ImportPath": "github.com/yikeso/gomacaron",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v79",
+	"Packages": [
+		"github.com/yikeso/gomacaron"
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/Unknwon/com",
+			"Comment": "v1-12-g0db4a62",
+			"Rev": "0db4a625e949e956314d7d1adea9bf82384cc10c"
+		},
+		{
+			"ImportPath": "github.com/Unknwon/macaron",
+			"Rev": "46ba71862573a72fa72a5544753a2dce252eb08d"
+		},
+		{
+			"ImportPath": "github.com/Unknwon/macaron/inject",
+			"Rev": "46ba71862573a72fa72a5544753a2dce252eb08d"
+		},
+		{
+			"ImportPath": "gopkg.in/ini.v1",
+			"Comment": "v1.28.0",
+			"Rev": "d3de07a94d22b4a0972deb4b96d790c2c0ce8333"
+		}
+	]
+}
