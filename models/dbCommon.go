@@ -7,6 +7,8 @@ import (
 	"github.com/yikeso/gomacaron/config"
 )
 
+const TIMESTAMP_FORMATE = "2006-05-04 03:02:01"
+
 var resourceDb *sql.DB
 var errorLogDb *sql.DB
 
