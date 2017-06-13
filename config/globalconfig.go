@@ -5,11 +5,12 @@ import (
 	"os"
 	"bufio"
 	"strings"
-	"github.com/robfig/cron"
 	"log"
+	"github.com/robfig/cron"
 )
 
 const middle = "========="
+
 
 type config struct {
 	Mymap  map[string]string
@@ -25,9 +26,9 @@ var c config
  * 初始化配置，每两分钟读取一次配置文件，更新配置
  */
 func init(){
-	fmt.Println("开始读取配置文件")
+	ReadConfig()
 	task := cron.New()
-	spec := "*/8 * * * * ?"
+	spec := "* */2 * * * ?"
 	task.AddFunc(spec, ReadConfig)
 	task.Start()
 }
@@ -35,7 +36,10 @@ func init(){
  * 读取配置文件
  */
 func ReadConfig(){
-	c.Mymap = make(map[string]string)
+	fmt.Println("开始读取配置文件")
+	if c.Mymap == nil {
+		c.Mymap = make(map[string]string)
+	}
 	f,err := os.Open("D:/go/goDevelopDemo/src/github.com/yikeso/gomacaron/config/app.conf")
 	if err != nil {
 		log.Println(err.Error())

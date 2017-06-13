@@ -2,7 +2,6 @@ package main
 
 import (
 	"runtime"
-	_ "github.com/yikeso/gomacaron/models"
 	"log"
 	"net/http"
 	"github.com/yikeso/gomacaron/routers"
