@@ -20,10 +20,12 @@ func initDb(){
 	node := config.Read("common","runmodel")
 	var err error
 	resourceDb,err = sqlx.Connect(config.Read(node,"drivername1"), config.Read(node,"datasourcename1"))
+	resourceDb.SetMaxOpenConns(2)
 	if err != nil {
 		panic(err)
 	}
 	errorLogDb,err = sqlx.Connect(config.Read(node,"drivername2"), config.Read(node,"datasourcename2"))
+	errorLogDb.SetMaxOpenConns(2)
 	if err != nil {
 		panic(err)
 	}
