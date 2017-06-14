@@ -8,9 +8,6 @@ type readerRc struct {
 //maxId电子书创建txt进度，id保存进度的对应记录
 func UpdateReaderRcMaxresourceid(maxId int64,id int64)(err error){
 	query := "Update T_READER_RC Set maxresourceid = ? Where id = ?"
-	if err != nil {
-		return
-	}
 	result,err := resourceDb.Exec(query,maxId,id)
 	if err != nil {
 		return
