@@ -6,6 +6,8 @@ import (
 	"testing"
 	. "github.com/smartystreets/goconvey/convey"
 	"log"
+	"database/sql"
+	"time"
 )
 
 func TestFindResourceCenterById(t *testing.T)  {
@@ -54,5 +56,25 @@ func TestFindErroeLogByStatus(t *testing.T) {
 		log.Println(errlogs)
 		So(err,ShouldBeNil)
 		So(len(errlogs),ShouldBeBetweenOrEqual,0,10)
+	})
+}
+
+func TestInsertCreatTxtError(t *testing.T) {
+
+	Convey("插入一个新的创建txt错误",t, func() {
+		errorLog := models.BookCreateTxtErrorLog{Bookid:1234,Booktitle:sql.NullString{String:"test",Valid:true},
+			Errormessage:sql.NullString{String:"panic",Valid:true},
+			Createtime:sql.NullString{String:time.Now().Format(models.TIMESTAMP_FORMATE),Valid:true},
+			Lastmodify:sql.NullString{String:time.Now().Format(models.TIMESTAMP_FORMATE),Valid:true}}
+		tx,err := models.GetErrorLogTx()
+		So(err,ShouldBeNil)
+		if err != nil {
+			return
+		}
+		err = models.InsertCreatTxtError(tx,&errorLog)
+		log.Println(errorLog)
+		tx.Commit()
+		So(err,ShouldBeNil)
+		So(errorLog.Id,ShouldNotEqual,0)
 	})
 }

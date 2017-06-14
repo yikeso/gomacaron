@@ -126,7 +126,9 @@ func InsertCreatTxtError(tx *sqlx.Tx,errorLog *BookCreateTxtErrorLog)(err error)
 	if err != nil {
 		return
 	}
-	id,err := r.LastInsertId()
-	errorLog.Id = id
+	id,e := r.LastInsertId()
+	if e == nil {
+		errorLog.Id = id
+	}
 	return
 }
