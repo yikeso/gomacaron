@@ -135,7 +135,7 @@ func HttpPostJSON(client *http.Client, url string, body, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	rc, err := HttpPost(client, url, http.Header{"content-type": []string{"application/json"}}, data)
+	rc, err := HttpPost(client, url, http.Header{"content-type": []string{"application/jsonobj"}}, data)
 	if err != nil {
 		return err
 	}

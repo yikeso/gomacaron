@@ -1,10 +1,10 @@
 package models
 
 import (
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/yikeso/gomacaron/config"
+	_ "github.com/go-sql-driver/mysql"//初始化驱动
 	"github.com/yikeso/gomacaron/config"
 	"github.com/jmoiron/sqlx"
+	"github.com/robfig/cron"
 )
 
 const TIMESTAMP_FORMATE = "2006-01-02 03:04:05"
@@ -14,17 +14,26 @@ var errorLogDb *sqlx.DB
 
 func init(){
 	initDb()
+	node,_ := config.Read("common","runmodel")
+	task := cron.New()
+	spec,_ := config.Read(node,"reloadDB")
+	task.AddFunc(spec,initDb)
+	task.Start()
 }
 
 func initDb(){
-	node := config.Read("common","runmodel")
+	node,_ := config.Read("common","runmodel")
+	driver,_ := config.Read(node,"drivername1")
+	datasource,_ := config.Read(node,"datasourcename1")
 	var err error
-	resourceDb,err = sqlx.Connect(config.Read(node,"drivername1"), config.Read(node,"datasourcename1"))
+	resourceDb,err = sqlx.Connect(driver,datasource)
 	resourceDb.SetMaxOpenConns(2)
 	if err != nil {
 		panic(err)
 	}
-	errorLogDb,err = sqlx.Connect(config.Read(node,"drivername2"), config.Read(node,"datasourcename2"))
+	driver,_ = config.Read(node,"drivername2")
+	datasource,_ = config.Read(node,"datasourcename2")
+	errorLogDb,err = sqlx.Connect(driver,datasource)
 	errorLogDb.SetMaxOpenConns(2)
 	if err != nil {
 		panic(err)

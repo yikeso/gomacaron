@@ -1,6 +1,7 @@
 package tests
 
 import (
+	_"github.com/yikeso/gomacaron/config"
 	_ "github.com/yikeso/gomacaron/models"
 	"github.com/yikeso/gomacaron/models"
 	"testing"
