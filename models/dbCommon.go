@@ -4,7 +4,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"//初始化驱动
 	"github.com/yikeso/gomacaron/config"
 	"github.com/jmoiron/sqlx"
-	"github.com/robfig/cron"
+	"github.com/alecthomas/log4go"
 )
 
 const TIMESTAMP_FORMATE = "2006-01-02 03:04:05"
@@ -14,14 +14,15 @@ var errorLogDb *sqlx.DB
 
 func init(){
 	initDb()
-	node,_ := config.Read("common","runmodel")
+	/*node,_ := config.Read("common","runmodel")
 	task := cron.New()
 	spec,_ := config.Read(node,"reloadDB")
 	task.AddFunc(spec,initDb)
-	task.Start()
+	task.Start()*/
 }
 
 func initDb(){
+	log4go.Info("初始化数据源")
 	node,_ := config.Read("common","runmodel")
 	driver,_ := config.Read(node,"drivername1")
 	datasource,_ := config.Read(node,"datasourcename1")

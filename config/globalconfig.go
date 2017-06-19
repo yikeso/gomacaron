@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"strings"
 	"log"
-	"github.com/robfig/cron"
 	l4g "github.com/alecthomas/log4go"
 	"fmt"
 )
@@ -28,10 +27,10 @@ var c config
  */
 func init(){
 	readConfig()
-	task := cron.New()
-	spec := "* */2 * * * ?"
+	/*task := cron.New()
+	spec := "* *//*5 * * * ?"
 	task.AddFunc(spec, readConfig)
-	task.Start()
+	task.Start()*/
 }
 /**
  * 读取配置文件

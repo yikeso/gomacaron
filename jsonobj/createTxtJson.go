@@ -1,7 +1,5 @@
 package jsonobj
 
-import "container/list"
-
 type Directory struct {
 	Id string
 	Title string
@@ -12,5 +10,11 @@ type Directory struct {
 	ParagraphNum int
 	Level int
 	NewPage bool
-	SubDirectory *list.List
+	SubDirectory []*Directory
+}
+
+type Chapter0 struct {
+	ImageUrl string
+	BookTitle string
+	Directories []*Directory
 }

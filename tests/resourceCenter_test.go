@@ -3,12 +3,14 @@ package tests
 import (
 	_"github.com/yikeso/gomacaron/config"
 	_ "github.com/yikeso/gomacaron/models"
+	_ "github.com/yikeso/gomacaron/util"
 	"github.com/yikeso/gomacaron/models"
 	"testing"
 	. "github.com/smartystreets/goconvey/convey"
 	"log"
 	"database/sql"
 	"time"
+	"github.com/yikeso/gomacaron/task"
 )
 
 func TestFindResourceCenterById(t *testing.T)  {
@@ -77,5 +79,13 @@ func TestInsertCreatTxtError(t *testing.T) {
 		tx.Commit()
 		So(err,ShouldBeNil)
 		So(errorLog.Id,ShouldNotEqual,0)
+	})
+}
+
+func TestCreateTxtByResourceCenter(t *testing.T) {
+	Convey("测试根据resourceCenter生成txt文件",t, func() {
+		rs,_ := models.FindResourceCenterById(65068)
+		err := task.CreateTxtByResourceCenter(&rs,true)
+		So(err,ShouldBeNil)
 	})
 }

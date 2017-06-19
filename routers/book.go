@@ -23,10 +23,10 @@ func GetRouters() (m *macaron.Macaron){
 	m.Use(logger())
 	//服务器异常捕获
 	m.Use(macaron.Recovery())
-	//500错误处理
+	/*//500错误处理
 	m.InternalServerError()
 	//404错误处理
-	m.NotFound()
+	m.NotFound()*/
 	m.Get("/", myHandleer)
 	return m
 }
