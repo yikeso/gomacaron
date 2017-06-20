@@ -37,7 +37,7 @@ const (
 	ContentType    = "Content-Type"
 	ContentLength  = "Content-Length"
 	ContentBinary  = "application/octet-stream"
-	ContentJSON    = "application/json"
+	ContentJSON    = "application/jsonobj"
 	ContentHTML    = "text/html"
 	CONTENT_PLAIN  = "text/plain"
 	ContentXHTML   = "application/xhtml+xml"
@@ -410,7 +410,7 @@ func (r *TplRender) JSON(status int, v interface{}) {
 		return
 	}
 
-	// json rendered fine, write out the result
+	// jsonobj rendered fine, write out the result
 	r.Header().Set(ContentType, ContentJSON+r.CompiledCharset)
 	r.WriteHeader(status)
 	if len(r.Opt.PrefixJSON) > 0 {

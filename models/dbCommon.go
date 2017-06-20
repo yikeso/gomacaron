@@ -1,48 +1,51 @@
 package models
 
 import (
-	"database/sql"
-	"github.com/go-gorp/gorp"
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"//初始化驱动
 	"github.com/yikeso/gomacaron/config"
-	"log"
+	"github.com/jmoiron/sqlx"
+	"github.com/alecthomas/log4go"
 )
 
-var resourceDb *gorp.DbMap
-var errorLogDb *gorp.DbMap
+const TIMESTAMP_FORMATE = "2006-01-02 03:04:05"
+
+var resourceDb *sqlx.DB
+var errorLogDb *sqlx.DB
 
 func init(){
 	initDb()
+	//定时任务刷新数据源
+	/*node,_ := config.Read("common","runmodel")
+	task := cron.New()
+	spec,_ := config.Read(node,"reloadDB")
+	task.AddFunc(spec,initDb)
+	task.Start()*/
 }
 
 func initDb(){
-	config.ReadConfig()
-	// connect to db using standard Go database/sql API
-	// use whatever database/sql driver you wish
-	node := config.Read("common","runmodel")
-	db, err := sql.Open(config.Read(node,"drivername1"), config.Read(node,"datasourcename1"))
-	logError(err, "sql.Open failed")
-	db.SetMaxOpenConns(10)
-	// construct a gorp DbMap
-	resourceDb = &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8"}}
-	// add a table, setting the table name to 'posts' and
-	// specifying that the Id property is an auto incrementing PK
-	resourceDb.AddTableWithName(ResourceCenter{}, "T_RESOURCECENTER").SetKeys(true, "Id")
-	// create the table. in a production system you'd generally
-	// use a migration tool, or create the tables via scripts
-	//err = resourceDb.CreateTablesIfNotExists()
-
-	db1, err := sql.Open(config.Read(node,"drivername1"), config.Read(node,"datasourcename1"))
-	logError(err, "sql.Open failed")
-	db1.SetMaxOpenConns(10)
-	errorLogDb = &gorp.DbMap{Db: db1, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8"}}
-	//errorLogDb.AddTableWithName(ResourceCenter{}, "posts").SetKeys(true, "Id")
-	//err = resourceDb.CreateTablesIfNotExists()
-	//logError(err, "Create tables failed")
-}
-
-func logError(err error, msg string){
+	log4go.Info("初始化数据源")
+	node,_ := config.Read("common","runmodel")
+	driver,_ := config.Read(node,"drivername1")
+	datasource,_ := config.Read(node,"datasourcename1")
+	var err error
+	resourceDb,err = sqlx.Connect(driver,datasource)
+	resourceDb.SetMaxOpenConns(2)
 	if err != nil {
-		log.Fatalln(msg, err)
+		panic(err)
 	}
+	driver,_ = config.Read(node,"drivername2")
+	datasource,_ = config.Read(node,"datasourcename2")
+	errorLogDb,err = sqlx.Connect(driver,datasource)
+	errorLogDb.SetMaxOpenConns(2)
+	if err != nil {
+		panic(err)
+	}
+}
+//获取错误日志的事务
+func GetErrorLogTx()(tx *sqlx.Tx,err error){
+	return errorLogDb.Beginx()
+}
+//获取电子书资源的事务
+func GetResourceTx()(tx *sqlx.Tx,err error){
+	return resourceDb.Beginx()
 }

@@ -1,15 +1,16 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"bufio"
 	"strings"
-	"github.com/robfig/cron"
 	"log"
+	l4g "github.com/alecthomas/log4go"
+	"fmt"
 )
 
 const middle = "========="
+
 
 type config struct {
 	Mymap  map[string]string
@@ -25,17 +26,23 @@ var c config
  * 初始化配置，每两分钟读取一次配置文件，更新配置
  */
 func init(){
-	fmt.Println("开始读取配置文件")
-	task := cron.New()
-	spec := "*/8 * * * * ?"
-	task.AddFunc(spec, ReadConfig)
-	task.Start()
+	readConfig()
+	//定时任务刷新配置文件
+	/*task := cron.New()
+	spec := "* *//*5 * * * ?"
+	task.AddFunc(spec, readConfig)
+	task.Start()*/
 }
 /**
  * 读取配置文件
  */
-func ReadConfig(){
-	c.Mymap = make(map[string]string)
+func readConfig(){
+	log.Println("加载log配置文件")
+	l4g.LoadConfiguration("D:/go/goDevelopDemo/src/github.com/yikeso/gomacaron/config/log.xml")
+	l4g.Debug("开始读取配置文件")
+	if c.Mymap == nil {
+		c.Mymap = make(map[string]string)
+	}
 	f,err := os.Open("D:/go/goDevelopDemo/src/github.com/yikeso/gomacaron/config/app.conf")
 	if err != nil {
 		log.Println(err.Error())
@@ -104,14 +111,25 @@ func ReadConfig(){
 /**
  * 传入属性，获取属性值
  */
-func Read(node, key string) (str string) {
+func Read(node, key string) (str string,found bool) {
 	if len(node) > 0{
-		key = node + middle + key
+		key = fmt.Sprint(node,middle ,key)
+	}else{
+		key = fmt.Sprint("common" ,middle ,key)
 	}
-	str, found := c.Mymap[key]
+	str, found = c.Mymap[key]
 	if !found {
 		log.Println("该配置属性:"+key+" 不存在")
 		return
+	}
+	return
+}
+//传入节点属性，获取属性值
+//node节点，key属性，def如果没有该属性，则使用传入的默认值
+func GetProp(node,key,def string) (str string){
+	str,found := Read(node,key)
+	if !found{
+		str = def
 	}
 	return
 }
