@@ -15,14 +15,61 @@ import (
 	"github.com/alecthomas/log4go"
 	"encoding/json"
 	"io/ioutil"
+	"database/sql"
 )
 
 var resourceUrl string
 
 func init(){
-
+	CreateTxtTask()
 }
-
+//不间断制作txt
+func CreateTxtTask(){
+	for {
+		var dev bool = false
+		if strings.EqualFold("development",
+			config.GetProp("", "runmodel", "development")) {
+			dev = true
+		}
+		var resourceCenters []models.ResourceCenter
+		if dev {
+			resourceCenters, _ = models.GetBookWithOutTxt(2)
+		} else {
+			resourceCenters, _ = models.GetBookWithOutTxt(3)
+		}
+		if len(resourceCenters) < 1 {
+			time.Sleep(10 * time.Minute)
+			continue
+		}
+		var err error
+		for _,rsc := range resourceCenters {
+			err = CreateTxtByResourceCenter(&rsc,dev)
+			if err != nil {
+				log4go.Error(err.Error())
+				errLog := new(models.BookCreateTxtErrorLog)
+				errLog.Bookid = rsc.Id
+				errLog.Booktitle = rsc.Title
+				errLog.Errormessage = sql.NullString{String:err.Error(),
+					Valid:true}
+				errLog.Createtime = sql.NullString{String:time.Now().Format(models.TIMESTAMP_FORMATE),
+					Valid:true}
+				errLog.Lastmodify = errLog.Createtime
+				tx,subErr := models.GetErrorLogTx()
+				if subErr != nil {
+					log4go.Error(subErr.Error())
+				}else {
+					models.InsertCreatTxtError(tx, errLog)
+					tx.Commit()
+				}
+			}
+			if dev {
+				models.UpdateReaderRcMaxresourceid(rsc.Id,2)
+			}else {
+				models.UpdateReaderRcMaxresourceid(rsc.Id,3)
+			}
+		}
+	}
+}
 
 func CreateTxtByResourceCenter(rs *models.ResourceCenter,isDev bool)(err error){
 	//捕获异常返回错误
@@ -58,8 +105,7 @@ func CreateTxtByResourceCenter(rs *models.ResourceCenter,isDev bool)(err error){
 	}
 	os.MkdirAll(bookTxtDir,0777)
 	os.MkdirAll(bookHtmlDir,0777)
-	chapterArray,_ := getChapterArrayByCharpterUrlList(urlEntity.ChapterArray)
-	log4go.Debug(chapterArray)
+	chapterArray,_ := getChapterArrayByCharpterUrlList(resourceUrl,urlEntity.ChapterArray)
 	coverUrl := urlEntity.Cover
 	chapter0 := new(jsonobj.Chapter0)
 	chapter0.BookTitle = rs.Title.String
@@ -81,23 +127,37 @@ func CreateTxtByResourceCenter(rs *models.ResourceCenter,isDev bool)(err error){
 		creatHtml = true
 	}
 	var txtPath string
+	var result *models.ChapterEntity
 	for i,dir := range chapterArray {
-		log4go.Debug(fmt.Sprint("当前制作id为",rs.Id," 的电子书资源的\n",dir.Url," 章节"))
+		log4go.Debug(fmt.Sprint("当前制作id为 ",rs.Id," 的电子书\nURL为 ",dir.Url," 的章节"))
 		if len(dir.Anchor) == 0 {
-			util.GetChapterEntity(dir.Url,"","",int(rs.Type.Int64),creatHtml)
+			result,err = util.GetChapterEntity(dir.Url,"","",int(rs.Type.Int64),creatHtml)
 		}else if i < len(chapterArray) - 1{
 			if len(chapterArray[i+1].Anchor) == 0 {
-				util.GetChapterEntity(dir.Url,dir.Anchor,"",int(rs.Type.Int64),creatHtml)
+				result,err = util.GetChapterEntity(dir.Url,dir.Anchor,"",int(rs.Type.Int64),creatHtml)
 			}else{
-				util.GetChapterEntity(dir.Url,dir.Anchor,chapterArray[i+1].Anchor,int(rs.Type.Int64),creatHtml)
+				result,err = util.GetChapterEntity(dir.Url,dir.Anchor,chapterArray[i+1].Anchor,int(rs.Type.Int64),creatHtml)
 			}
 		}else{
-			util.GetChapterEntity(dir.Url,dir.Anchor,"",int(rs.Type.Int64),creatHtml)
+			result,err = util.GetChapterEntity(dir.Url,dir.Anchor,"",int(rs.Type.Int64),creatHtml)
 		}
+		if err != nil {
+			err = errors.New(fmt.Sprint("章节id为 ",i+1," 的章节制作失败",err.Error()))
+			return
+		}
+		dir.ParagraphNum = result.Paragraph
 		txtPath = fmt.Sprint(bookTxtDir,i+1,".txt")
-		err = ioutil.WriteFile(txtPath,nil,0666)
+		err = ioutil.WriteFile(txtPath,result.Content.Bytes(),0666)
+		if err != nil {
+			err = errors.New(fmt.Sprint("章节id为 ",i+1," 的章节制作失败",err.Error()))
+			return
+		}
 		txtPath = fmt.Sprint(bookHtmlDir,i+1,".txt")
-		err = ioutil.WriteFile(txtPath,nil,0666)
+		err = ioutil.WriteFile(txtPath,result.HtmlContent.Bytes(),0666)
+		if err != nil {
+			err = errors.New(fmt.Sprint("章节id为 ",i+1," 的章节制作失败",err.Error()))
+			return
+		}
 	}
 	for _,dir := range chapterArray {
 		dir.ChapterParagraphNum = countChapterParagraphNum(dir)
@@ -111,8 +171,10 @@ func CreateTxtByResourceCenter(rs *models.ResourceCenter,isDev bool)(err error){
 		return
 	}
 	err = ioutil.WriteFile(txtPath,jsonStr,0666)
-	txtPath = fmt.Sprint(bookHtmlDir,0,".txt")
-	err = ioutil.WriteFile(txtPath,jsonStr,0666)
+	if creatHtml {
+		txtPath = fmt.Sprint(bookHtmlDir, 0, ".txt")
+		err = ioutil.WriteFile(txtPath, jsonStr, 0666)
+	}
 	return
 }
 
@@ -130,7 +192,7 @@ func countChapterParagraphNum(dir *jsonobj.Directory)(p int){
 	return
 }
 
-func getChapterArrayByCharpterUrlList(urlList []string)(chapterArray []*jsonobj.Directory,err error){
+func getChapterArrayByCharpterUrlList(resourceUrl string,urlList []string)(chapterArray []*jsonobj.Directory,err error){
 	if urlList == nil || len(urlList) == 0{
 		return
 	}
@@ -140,7 +202,7 @@ func getChapterArrayByCharpterUrlList(urlList []string)(chapterArray []*jsonobj.
 		dir.Id = strconv.Itoa(i+1)
 		dir.Level = 1
 		if i := strings.Index(s,"#");i > 0 {
-			dir.Url = util.FormatFilePath(s[0:i-1])
+			dir.Url = fmt.Sprint(resourceUrl,util.FormatFilePath(s[0:i-1]))
 			dir.Anchor = s[i+1:]
 		}else if i == 0{
 			err = errors.New("章节路径为空")

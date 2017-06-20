@@ -115,12 +115,13 @@ func GetCoverImageUrlByCoverUrl(coverUrl string)(imageUrl string){
 
 //解析bcontent目录
 func GetChapterArrayByBcontent(resourceUrl string,bcontentPath string,ty int)(chapterArray []*jsonobj.Directory,err error){
+	bcontentPath = fmt.Sprint(resourceUrl,bcontentPath[1:])
 	var doc *goquery.Document
 	switch ty {
 	case 7:
-		doc,err = goquery.NewDocument(fmt.Sprint(resourceUrl,bcontentPath))
+		doc,err = goquery.NewDocument(bcontentPath)
 	default:
-		doc,err = goquery.NewDocument(fmt.Sprint(resourceUrl,bcontentPath))
+		doc,err = goquery.NewDocument(bcontentPath)
 		if err != nil {
 			panic(err)
 		}
@@ -134,7 +135,7 @@ func GetChapterArrayByBcontent(resourceUrl string,bcontentPath string,ty int)(ch
 	dirSlice := make([]*jsonobj.Directory,0,allA.Length())
 	for _,dir := range rootArray {
 		dirSlice = append(dirSlice,dir)
-		setSubDir(dir,allA,dirPath,dirSlice)
+		dirSlice = setSubDir(dir,allA,dirPath,dirSlice)
 	}
 	latelyUrl := ""
 	for _,dir := range dirSlice {
@@ -142,6 +143,7 @@ func GetChapterArrayByBcontent(resourceUrl string,bcontentPath string,ty int)(ch
 			dir.NewPage = false
 		}else {
 			dir.NewPage = true
+			latelyUrl = dir.Url
 		}
 		if dir.NewPage || dir.Level == 1 {
 			chapterArray = append(chapterArray,dir)
@@ -150,19 +152,20 @@ func GetChapterArrayByBcontent(resourceUrl string,bcontentPath string,ty int)(ch
 	return
 }
 //给标题设置子标题
-func setSubDir(parent *jsonobj.Directory,sel *goquery.Selection,dirPath string,dirSlice []*jsonobj.Directory){
+func setSubDir(parent *jsonobj.Directory,sel *goquery.Selection,dirPath string,dirSlice []*jsonobj.Directory) []*jsonobj.Directory{
 	if parent == nil || len(parent.Id) < 1{
-		return
+		return dirSlice
 	}
 	subArray := getSubDir(parent,sel,dirPath)
 	if len(subArray) < 1{
-		return
+		return dirSlice
 	}
 	parent.SubDirectory = subArray
 	for _,dir := range subArray{
 		dirSlice = append(dirSlice,dir)
-		setSubDir(dir,sel,dirPath,dirSlice)
+		dirSlice = setSubDir(dir,sel,dirPath,dirSlice)
 	}
+	return dirSlice
 }
 
 //获取子标题
@@ -277,13 +280,14 @@ func makeContentByUrl(url,anchor1,anchor2 string,createHtml bool)(chatperEntity 
 		return
 	}
 	p := splitChapterByTag(chapter)
+	chatperEntity = new (models.ChapterEntity)
 	chatperEntity.Paragraph = len(p)
 	buffer := bytes.NewBuffer([]byte(body))
 	buffer.Reset()
 	paragraphArrayToString(p,buffer,url)
 	chatperEntity.Content = buffer
 	if createHtml {
-		htmlBuffer := bytes.NewBuffer(make([]byte, 10000))
+		htmlBuffer := bytes.NewBuffer(make([]byte,0,len(body)))
 		err = paragraphArrayAddTagToString(p, htmlBuffer, url)
 		if err != nil {
 			return
@@ -295,7 +299,7 @@ func makeContentByUrl(url,anchor1,anchor2 string,createHtml bool)(chatperEntity 
 
 func paragraphArrayAddTagToString(p []string,buffer *bytes.Buffer,url string) (err error){
 	dir := url[:strings.LastIndex(url,"/")]
-	pBuffer := bytes.NewBuffer(make([]byte,1000))
+	pBuffer := bytes.NewBuffer(make([]byte,0,1000))
 	for i,s := range p{
 		if strings.HasPrefix(s,"</img") ||
 			strings.HasPrefix(s,"</video") ||
@@ -339,9 +343,9 @@ func paragraphArrayAddTagToString(p []string,buffer *bytes.Buffer,url string) (e
 				return
 			}
 			buffer.WriteString("<div id = \"")
-			buffer.WriteString(string(i+1))
+			buffer.WriteString(fmt.Sprint(i+1))
 			buffer.WriteString("\" pid = \"")
-			buffer.WriteString(string(i+1))
+			buffer.WriteString(fmt.Sprint(i+1))
 			buffer.WriteString("\">")
 			buffer.WriteString(pBuffer.String())
 			buffer.WriteString("</div>")
@@ -364,9 +368,14 @@ func addSpan(cont string,p int,buffer *bytes.Buffer)(err error){
 	doc.Find("body").Find("").Each(func(i int,s *goquery.Selection){
 		s.SetAttr("parentid",fmt.Sprint(p))
 	})
+	cont,err = doc.Find("body").Eq(0).Html()
+	if err != nil {
+		return
+	}
 	buffer.Reset()
 	var c,n rune
 	var isAddTage,isEscape bool
+	isAddTage = true
 	for _,c = range cont{
 		if c == '<' {
 			isAddTage = false
@@ -443,41 +452,52 @@ func paragraphArrayToString(p []string,buffer *bytes.Buffer,url string){
 func splitChapterByTag(chapter string)(r []string){
 	p := make([]string,0,100)
 	var ltIndex,gtIndex int
-	var str string
+	var str,subChapter string
 	ltIndex = strings.Index(chapter,"<")
 	for ltIndex != -1 {
-		gtIndex = strings.Index(chapter,">")
+		subChapter = chapter[ltIndex:]
+		gtIndex = ltIndex + strings.Index(subChapter,">")
 		if gtIndex < 1 {
 			break
 		}
-		str = chapter[ltIndex:gtIndex]
+		str = strings.Trim(chapter[ltIndex:gtIndex+1],"\\s")
 		if strings.HasPrefix(str,"<div") || strings.HasPrefix(str,"</div") ||
 			strings.HasPrefix(str,"<p") || strings.HasPrefix(str,"</p") ||
 			strings.HasPrefix(str,"</img") ||
 			strings.HasPrefix(str,"</video") ||
 			strings.HasPrefix(str,"</audio") ||
-			strings.HasPrefix(str,"</embed"){
+			strings.HasPrefix(str,"</embed") ||
+			strings.HasPrefix(str,"<br") {
 			if ltIndex > 0 {
-				str = chapter[:ltIndex-1]
-				p = append(p, str)
+				str = strings.Trim(chapter[:ltIndex],"\\s")
+				if len(str) > 0 {
+					p = append(p, str)
+				}
 			}
+			chapter = chapter[gtIndex+1:]
+			ltIndex = strings.Index(chapter,"<")
 		}else if strings.HasPrefix(str,"<img") ||
 			strings.HasPrefix(str,"<video") ||
 			strings.HasPrefix(str,"<audio") ||
 			strings.HasPrefix(str,"<embed"){
 			if ltIndex > 0 {
-				str = chapter[:ltIndex-1]
-				p = append(p, str)
+				str = strings.Trim(chapter[:ltIndex],"\\s")
+				if len(str) > 0 {
+					p = append(p, str)
+				}
 			}
-			p = append(p,chapter[ltIndex:gtIndex])
+			p = append(p,chapter[ltIndex:gtIndex+1])
+			chapter = chapter[gtIndex+1:]
+			ltIndex = strings.Index(chapter,"<")
+		}else {
+			subChapter = chapter[gtIndex:]
+			ltIndex = gtIndex + strings.Index(subChapter,"<")
 		}
-		chapter = chapter[gtIndex+1:]
-		ltIndex = strings.Index(chapter,"<")
 	}
-	if len(chapter) > 0{
-		p = append(p,chapter)
+	if len(strings.TrimSpace(chapter)) > 0{
+		p = append(p,strings.TrimSpace(chapter))
 	}
-	buffer := bytes.NewBuffer(make([]byte,500))
+	buffer := bytes.NewBuffer(make([]byte,0,500))
 	deque := list.New()
 	var s string
 	for _,str = range p{
@@ -487,9 +507,14 @@ func splitChapterByTag(chapter string)(r []string){
 			continue
 		}
 		if strings.HasPrefix(str,"<") && !strings.HasPrefix(str,"</"){
-			s = str[1:strings.Index(str,">")]
+			s = str[1:strings.Index(str,">")+1]
 			if !strings.HasSuffix(s,"/>"){
-				s = str[:strings.Index(s,"\\s")]
+				end := strings.Index(s,"\\s")
+				if end != -1 {
+					s = str[:end]
+				}else {
+					s = str[:len(str)-1]
+				}
 				if matcheBlockLevelElements(s){
 					deque.PushBack(s)
 				}
@@ -498,9 +523,9 @@ func splitChapterByTag(chapter string)(r []string){
 		if deque.Len() < 1 {
 			s = buffer.String()
 			if len(s) > 0{
-				r = append(r,s)
+				r = append(r,strings.Repeat(s,1))
+				buffer.Reset()
 			}
-			buffer.Reset()
 			r = append(r,str)
 			continue
 		}else {
@@ -517,6 +542,10 @@ func splitChapterByTag(chapter string)(r []string){
 			}
 		}
 	}
+	s = buffer.String()
+	if len(s) > 0{
+		r = append(r,strings.Repeat(s,1))
+	}
 	return
 }
 
@@ -531,20 +560,21 @@ func matcheBlockLevelElements(targetName string)bool{
 
 //去掉span标签
 func removeSpan(partHtml string) string {
-	i := strings.Index(partHtml,"<span")
 	reg := regexp.MustCompile("[\\n\\t\\r]+")
+	partHtml = reg.ReplaceAllString(partHtml,"")
+	i := strings.Index(partHtml,"<span")
 	if i == -1 {
-		return reg.ReplaceAllString(partHtml,"")
+		return partHtml
 	}
 	buffer := bytes.NewBuffer(make([]byte,500))
 	for i != -1 {
-		buffer.WriteString(partHtml[:i-1])
+		buffer.WriteString(partHtml[:i])
 		partHtml = partHtml[i+1:]
 		i = strings.Index(partHtml,">")
 		partHtml = partHtml[i+1:]
 		i = strings.Index(partHtml,"</span")
 		if i != -1 {
-			buffer.WriteString(partHtml[:i-1])
+			buffer.WriteString(partHtml[:i])
 			partHtml = partHtml[i+1:]
 			i = strings.Index(partHtml,">")
 			partHtml = partHtml[i+1:]
@@ -561,7 +591,7 @@ func cutBodyByAnchor(body,anchor1,anchor2 string)(subBody string,err error){
 		err = errors.New("章节内容为空")
 		return
 	}
-	if anchor1 == anchor2 {
+	if len(anchor1) > 0 && anchor1 == anchor2 {
 		err = errors.New("章节内容截取，两锚点相同")
 		return
 	}
@@ -597,6 +627,10 @@ func cutBodyByAnchor(body,anchor1,anchor2 string)(subBody string,err error){
 func GetHtmlByUrl(url string)(html string,err error){
 	resp,err := http.Get(url)
 	if err != nil{
+		return
+	}
+	if resp.StatusCode != 200 {
+		err = errors.New(fmt.Sprint("请求url：",url," 失败，错误代码：",resp.StatusCode))
 		return
 	}
 	buffer := bytes.NewBuffer(make([]byte,resp.ContentLength))

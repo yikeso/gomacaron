@@ -4,6 +4,7 @@ import (
 	_"github.com/yikeso/gomacaron/config"
 	_ "github.com/yikeso/gomacaron/models"
 	_ "github.com/yikeso/gomacaron/util"
+	_ "github.com/yikeso/gomacaron/task"
 	"github.com/yikeso/gomacaron/models"
 	"testing"
 	. "github.com/smartystreets/goconvey/convey"
@@ -84,7 +85,7 @@ func TestInsertCreatTxtError(t *testing.T) {
 
 func TestCreateTxtByResourceCenter(t *testing.T) {
 	Convey("测试根据resourceCenter生成txt文件",t, func() {
-		rs,_ := models.FindResourceCenterById(65068)
+		rs,_ := models.FindResourceCenterById(65075)
 		err := task.CreateTxtByResourceCenter(&rs,true)
 		So(err,ShouldBeNil)
 	})
