@@ -13,6 +13,10 @@ import (
 	"time"
 	"github.com/yikeso/gomacaron/task"
 )
+//不间断创建txt任务测试
+func TestCreateTxtTask(t *testing.T)  {
+	task.CreateTxtTask()
+}
 
 func TestFindResourceCenterById(t *testing.T)  {
 	Convey("T_RESOURCECENTER 表进行findById查询",t,func(){

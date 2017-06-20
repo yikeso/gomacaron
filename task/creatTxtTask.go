@@ -20,9 +20,6 @@ import (
 
 var resourceUrl string
 
-func init(){
-	CreateTxtTask()
-}
 //不间断制作txt
 func CreateTxtTask(){
 	for {
