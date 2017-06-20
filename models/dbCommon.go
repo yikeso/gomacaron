@@ -14,6 +14,7 @@ var errorLogDb *sqlx.DB
 
 func init(){
 	initDb()
+	//定时任务刷新数据源
 	/*node,_ := config.Read("common","runmodel")
 	task := cron.New()
 	spec,_ := config.Read(node,"reloadDB")

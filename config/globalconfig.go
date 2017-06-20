@@ -27,6 +27,7 @@ var c config
  */
 func init(){
 	readConfig()
+	//定时任务刷新配置文件
 	/*task := cron.New()
 	spec := "* *//*5 * * * ?"
 	task.AddFunc(spec, readConfig)
