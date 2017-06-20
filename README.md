@@ -1,5 +1,5 @@
 # gomacaron
-语言demo
+go语言demo
 持久层sqlx
 web框架Macaron
 log4go日志
