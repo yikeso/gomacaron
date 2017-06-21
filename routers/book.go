@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"net/http"
 	"github.com/yikeso/gomacaron/jsonobj"
-	"github.com/yikeso/gomacaron/util"
 	"github.com/yikeso/gomacaron/controllers"
+	"encoding/json"
+	"github.com/Unknwon/macaron/inject"
 )
 
 func GetRouters() (m *macaron.Macaron){
@@ -26,8 +27,8 @@ func GetRouters() (m *macaron.Macaron){
 	m.Use(logger())
 	//服务器异常捕获
 	m.Use(macaron.Recovery())
-	//500错误处理
-	m.InternalServerError(serverError)
+	//500错误处理中间件
+	m.Use(serverError)
 	//404错误处理
 	m.NotFound(notFoundHandler)
 	m.Get("/book/coverimage",controllers.CoverImageHandler)
@@ -37,11 +38,29 @@ func GetRouters() (m *macaron.Macaron){
 func notFoundHandler(ctx *macaron.Context) (string){
 	return fmt.Sprint("the request path :", ctx.Req.RequestURI," not exist!")
 }
+
 //处理500错误
-func serverError(ctx *macaron.Context) (string){
-	br := &jsonobj.BaseRespone{Status:1,Message:"系统异常，请联系管理员"}
-	return util.Obj2String(br)
+func serverError(c *macaron.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			br := &jsonobj.BaseRespone{Status: 1, Message: "系统异常，请联系管理员"}
+			d,err := json.Marshal(br)
+			if err != nil {
+				panic(err.Error())
+			}
+			// Lookup the current responsewriter
+			val := c.GetVal(inject.InterfaceOf((*http.ResponseWriter)(nil)))
+			res := val.Interface().(http.ResponseWriter)
+			if macaron.Env == macaron.DEV {
+				panic(err.Error())
+			}
+			res.WriteHeader(http.StatusInternalServerError)
+			res.Write(d)
+		}
+	}()
+	c.Next()
 }
+
 //log日志
 func logger() macaron.Handler{
 	return func (ctx *macaron.Context){
@@ -64,6 +83,7 @@ func logger() macaron.Handler{
 				content = fmt.Sprintf("\033[1;31m%s\033[0m", content)
 			case 500:
 				content = fmt.Sprintf("\033[1;36m%s\033[0m", content)
+				log4go.Error(content)
 			}
 		}
 		log4go.Debug(content)
