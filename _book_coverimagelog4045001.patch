@@ -1,0 +1,229 @@
+Index: _book_coverimagelog404500.patch
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- _book_coverimagelog404500.patch	(revision 469fee42d267de920741cfec6c8682e64db32c15)
++++ _book_coverimagelog404500.patch	(revision 469fee42d267de920741cfec6c8682e64db32c15)
+@@ -1,221 +0,0 @@
+-Index: jsonobj/responeJson.go
+-IDEA additional info:
+-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+-<+>UTF-8
+-===================================================================
+---- jsonobj/responeJson.go	(revision )
+-+++ jsonobj/responeJson.go	(revision )
+-@@ -0,0 +1,12 @@
+-+package jsonobj
+-+
+-+//操作状态，和错误信息
+-+type BaseRespone struct {
+-+	Status int //0为操作成功
+-+	Message string
+-+}
+-+//返回一个结构体
+-+type OneRespone struct {
+-+	BaseRespone
+-+	One interface{}
+-+}
+-\ No newline at end of file
+-Index: routers/book.go
+-IDEA additional info:
+-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+-<+>UTF-8
+-===================================================================
+---- routers/book.go	(revision b0e3b563c6254fe5db015a8892184d10c8118622)
+-+++ routers/book.go	(revision )
+-@@ -8,6 +8,9 @@
+- 	"github.com/alecthomas/log4go"
+- 	"fmt"
+- 	"net/http"
+-+	"github.com/yikeso/gomacaron/jsonobj"
+-+	"github.com/yikeso/gomacaron/util"
+-+	"github.com/yikeso/gomacaron/controllers"
+- )
+- 
+- func GetRouters() (m *macaron.Macaron){
+-@@ -23,18 +26,23 @@
+- 	m.Use(logger())
+- 	//服务器异常捕获
+- 	m.Use(macaron.Recovery())
+--	/*//500错误处理
+--	m.InternalServerError()
+-+	//500错误处理
+-+	m.InternalServerError(serverError)
+- 	//404错误处理
+--	m.NotFound()*/
+--	m.Get("/", myHandleer)
+-+	m.NotFound(notFoundHandler)
+-+	m.Get("/book/coverimage",controllers.CoverImageHandler)
+- 	return m
+- }
+--
+--func myHandleer(ctx *macaron.Context) (string){
+--	return "the request path is:" + ctx.Req.RequestURI
+-+//处理404错误
+-+func notFoundHandler(ctx *macaron.Context) (string){
+-+	return fmt.Sprint("the request path :", ctx.Req.RequestURI," not exist!")
+- }
+--
+-+//处理500错误
+-+func serverError(ctx *macaron.Context) (string){
+-+	br := &jsonobj.BaseRespone{Status:1,Message:"系统异常，请联系管理员"}
+-+	return util.Obj2String(br)
+-+}
+-+//log日志
+- func logger() macaron.Handler{
+- 	return func (ctx *macaron.Context){
+- 		start := time.Now()
+-Index: task/creatTxtTask.go
+-IDEA additional info:
+-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+-<+>UTF-8
+-===================================================================
+---- task/creatTxtTask.go	(revision b0e3b563c6254fe5db015a8892184d10c8118622)
+-+++ task/creatTxtTask.go	(revision )
+-@@ -82,24 +82,7 @@
+- 		err = errors.New(fmt.Sprint("id为：",rs.Id," 的电子书解析索引index失败\n",err.Error()))
+- 		return
+- 	}
+--	var bookTxtDir,bookHtmlDir string;
+--	if isDev {
+--		bookTxtDir = "e:/bookTxtDir/"
+--		bookHtmlDir = "e:/bookHtmlDir/"
+--	}else {
+--		bookTxtDir = "./bookTxtDir/"
+--		bookHtmlDir = "./bookHtmlDir/"
+--	}
+--	datePath := fmt.Sprint(time.Unix(rs.Id*config.ID_TO_TIME,0).Format("2006/01/02"),
+--		"/",rs.Id,"/")
+--	switch rs.Type.Int64 {
+--	case 7:
+--		bookTxtDir = fmt.Sprint(bookTxtDir,"7article/",datePath)
+--		bookHtmlDir = fmt.Sprint(bookHtmlDir,"7article/",datePath)
+--	default :
+--		bookTxtDir = fmt.Sprint(bookTxtDir,"6book/",datePath)
+--		bookHtmlDir = fmt.Sprint(bookHtmlDir,"6book/",datePath)
+--	}
+-+	bookTxtDir,bookHtmlDir := util.GetResouceCenterDirByBookIdAndBookType(rs.Id,int(rs.Type.Int64),isDev)
+- 	os.MkdirAll(bookTxtDir,0777)
+- 	os.MkdirAll(bookHtmlDir,0777)
+- 	chapterArray,_ := getChapterArrayByCharpterUrlList(resourceUrl,urlEntity.ChapterArray)
+-Index: controllers/bookController.go
+-IDEA additional info:
+-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+-<+>UTF-8
+-===================================================================
+---- controllers/bookController.go	(revision b0e3b563c6254fe5db015a8892184d10c8118622)
+-+++ controllers/bookController.go	(revision )
+-@@ -1,1 +1,55 @@
+- package controllers
+-+
+-+import (
+-+	"github.com/Unknwon/macaron"
+-+	"fmt"
+-+	"github.com/yikeso/gomacaron/jsonobj"
+-+	"github.com/yikeso/gomacaron/util"
+-+	"strings"
+-+	"github.com/yikeso/gomacaron/config"
+-+	"strconv"
+-+	"github.com/yikeso/gomacaron/models"
+-+	"io/ioutil"
+-+	"github.com/alecthomas/log4go"
+-+	"encoding/json"
+-+)
+-+
+-+func CoverImageHandler(ctx *macaron.Context) (result string){
+-+	bookIdStr := ctx.Req.Form.Get("bookId")
+-+	if len(bookIdStr) <1 {
+-+		br := &jsonobj.BaseRespone{Status:3,Message:"电子书id不得为空"}
+-+		result = util.Obj2String(br)
+-+		return
+-+	}
+-+	bookId,err := strconv.ParseInt(bookIdStr, 10, 64)
+-+	if err != nil {
+-+		br := &jsonobj.BaseRespone{Status:4,Message:"电子书id不合法"}
+-+		result = util.Obj2String(br)
+-+		return
+-+	}
+-+	var dev bool = false
+-+	if strings.EqualFold("development",
+-+		config.GetProp("", "runmodel", "development")) {
+-+		dev = true
+-+	}
+-+	ty,err := models.GetResourceCenterTypeById(bookId)
+-+	if err != nil {
+-+		log4go.Error(err.Error())
+-+		panic(err)
+-+	}
+-+	txtDir,_ := util.GetResouceCenterDirByBookIdAndBookType(bookId,int(ty.Int64),dev)
+-+	chapter0Content,err := ioutil.ReadFile(fmt.Sprint(txtDir,"0.txt"))
+-+	if err != nil {
+-+		log4go.Error(err.Error())
+-+		panic(err)
+-+	}
+-+	chapter0 := &jsonobj.Chapter0{}
+-+	err = json.Unmarshal(chapter0Content,chapter0)
+-+	if err != nil {
+-+		log4go.Error(err.Error())
+-+		panic(err)
+-+	}
+-+	or := &jsonobj.OneRespone{One:chapter0.ImageUrl}
+-+	return util.Obj2String(or)
+-+}
+-+
+-Index: util/util.go
+-IDEA additional info:
+-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+-<+>UTF-8
+-===================================================================
+---- util/util.go	(revision b0e3b563c6254fe5db015a8892184d10c8118622)
+-+++ util/util.go	(revision )
+-@@ -15,6 +15,10 @@
+- 	"errors"
+- 	"image"
+- 	"github.com/yikeso/gomacaron/models"
+-+	"encoding/json"
+-+	"time"
+-+	"github.com/beego/bee/cmd/commands/rs"
+-+	"github.com/yikeso/gomacaron/config"
+- )
+- 
+- var  blockLevelElements []string
+-@@ -61,6 +65,36 @@
+- 	Cover string
+- 	Chapters string
+- }
+-+
+-+func GetResouceCenterDirByBookIdAndBookType(bookId int64,ty int,dev bool)(txtDir string,htmlDir string){
+-+	if dev {
+-+		txtDir = "e:/bookTxtDir/"
+-+		htmlDir = "e:/bookHtmlDir/"
+-+	}else {
+-+		txtDir = "./bookTxtDir/"
+-+		htmlDir = "./bookHtmlDir/"
+-+	}
+-+	datePath := fmt.Sprint(time.Unix(bookId*config.ID_TO_TIME,0).Format("2006/01/02"),
+-+		"/",bookId,"/")
+-+	switch ty {
+-+	case 7:
+-+		txtDir = fmt.Sprint(txtDir,"7article/",datePath)
+-+		htmlDir = fmt.Sprint(htmlDir,"7article/",datePath)
+-+	default :
+-+		txtDir = fmt.Sprint(txtDir,"6book/",datePath)
+-+		htmlDir = fmt.Sprint(htmlDir,"6book/",datePath)
+-+	}
+-+	return
+-+}
+-+
+-+func Obj2String(v interface{})string{
+-+	d,err := json.Marshal(v)
+-+	if err != nil {
+-+		panic(err)
+-+	}
+-+	return string(d)
+-+}
+-+
+- //解析电子书索引得到相关属性
+- func GetBookUrl(fileUrl string)(entity *UrlEntity,err error){
+- 	fmt.Println(fileUrl)
