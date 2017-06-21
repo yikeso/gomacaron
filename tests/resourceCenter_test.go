@@ -4,7 +4,6 @@ import (
 	_"github.com/yikeso/gomacaron/config"
 	_ "github.com/yikeso/gomacaron/models"
 	_ "github.com/yikeso/gomacaron/util"
-	_ "github.com/yikeso/gomacaron/task"
 	"github.com/yikeso/gomacaron/models"
 	"testing"
 	. "github.com/smartystreets/goconvey/convey"
@@ -12,6 +11,7 @@ import (
 	"database/sql"
 	"time"
 	"github.com/yikeso/gomacaron/task"
+	"fmt"
 )
 //不间断创建txt任务测试
 func TestCreateTxtTask(t *testing.T)  {
@@ -89,8 +89,21 @@ func TestInsertCreatTxtError(t *testing.T) {
 
 func TestCreateTxtByResourceCenter(t *testing.T) {
 	Convey("测试根据resourceCenter生成txt文件",t, func() {
-		rs,_ := models.FindResourceCenterById(65075)
+		rs,_ := models.FindResourceCenterById(85398)
 		err := task.CreateTxtByResourceCenter(&rs,true)
 		So(err,ShouldBeNil)
+	})
+}
+
+func TestString(t *testing.T) {
+	Convey("测试字符串是指针传递还是对象复制",t, func() {
+		old := "asdfghjkl"
+		fmt.Println(old)
+		test1 := old[:4]
+		fmt.Println(test1)
+		runeArray := []rune(old)
+		runeArray[1] = 'a'
+		fmt.Println(old)
+		fmt.Println(string(runeArray))
 	})
 }
