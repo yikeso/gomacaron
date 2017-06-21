@@ -2,10 +2,12 @@
 	"ImportPath": "github.com/yikeso/gomacaron",
 	"GoVersion": "go1.8",
 	"GodepVersion": "v79",
-	"Packages": [
-		"github.com/yikeso/gomacaron"
-	],
 	"Deps": [
+		{
+			"ImportPath": "github.com/PuerkitoBio/goquery",
+			"Comment": "v1.1.0-5-g2dc9389",
+			"Rev": "2dc93891ab3bcc1dbc2cbf9bc6376c37f6e6f289"
+		},
 		{
 			"ImportPath": "github.com/Unknwon/com",
 			"Comment": "v1-12-g0db4a62",
@@ -18,6 +20,37 @@
 		{
 			"ImportPath": "github.com/Unknwon/macaron/inject",
 			"Rev": "46ba71862573a72fa72a5544753a2dce252eb08d"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/log4go",
+			"Rev": "18d87da5025a6e8bd58dede5ecffe3f62115bc4f"
+		},
+		{
+			"ImportPath": "github.com/andybalholm/cascadia",
+			"Rev": "349dd0209470eabd9514242c688c403c0926d266"
+		},
+		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Comment": "v1.3-20-gb644770",
+			"Rev": "b64477099cc2bb2aaf583b4342d04e7d9966ff4c"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx",
+			"Comment": "sqlx-v1.1-123-gd9bd385",
+			"Rev": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx/reflectx",
+			"Comment": "sqlx-v1.1-123-gd9bd385",
+			"Rev": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
+		},
+		{
+			"ImportPath": "golang.org/x/net/html",
+			"Rev": "5961165da77ad3a2abf3a77ea904c13a76b0b073"
+		},
+		{
+			"ImportPath": "golang.org/x/net/html/atom",
+			"Rev": "5961165da77ad3a2abf3a77ea904c13a76b0b073"
 		},
 		{
 			"ImportPath": "gopkg.in/ini.v1",
