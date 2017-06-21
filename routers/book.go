@@ -8,10 +8,12 @@ import (
 	"github.com/alecthomas/log4go"
 	"fmt"
 	"net/http"
-	"github.com/yikeso/gomacaron/jsonobj"
 	"github.com/yikeso/gomacaron/controllers"
-	"encoding/json"
 	"github.com/Unknwon/macaron/inject"
+)
+
+const (
+	error500 = "{Status: 1, Message: \"系统异常，请联系管理员\"}"
 )
 
 func GetRouters() (m *macaron.Macaron){
@@ -43,19 +45,15 @@ func notFoundHandler(ctx *macaron.Context) (string){
 func serverError(c *macaron.Context) {
 	defer func() {
 		if err := recover(); err != nil {
-			br := &jsonobj.BaseRespone{Status: 1, Message: "系统异常，请联系管理员"}
-			d,err := json.Marshal(br)
-			if err != nil {
-				panic(err.Error())
-			}
 			// Lookup the current responsewriter
 			val := c.GetVal(inject.InterfaceOf((*http.ResponseWriter)(nil)))
 			res := val.Interface().(http.ResponseWriter)
 			if macaron.Env == macaron.DEV {
-				panic(err.Error())
+				log4go.Error(err)
+				panic(err)
 			}
 			res.WriteHeader(http.StatusInternalServerError)
-			res.Write(d)
+			res.Write([]byte(error500))
 		}
 	}()
 	c.Next()
@@ -83,7 +81,6 @@ func logger() macaron.Handler{
 				content = fmt.Sprintf("\033[1;31m%s\033[0m", content)
 			case 500:
 				content = fmt.Sprintf("\033[1;36m%s\033[0m", content)
-				log4go.Error(content)
 			}
 		}
 		log4go.Debug(content)
