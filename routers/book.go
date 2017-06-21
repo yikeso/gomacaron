@@ -83,6 +83,7 @@ func logger() macaron.Handler{
 				content = fmt.Sprintf("\033[1;31m%s\033[0m", content)
 			case 500:
 				content = fmt.Sprintf("\033[1;36m%s\033[0m", content)
+				log4go.Error(content)
 			}
 		}
 		log4go.Debug(content)
