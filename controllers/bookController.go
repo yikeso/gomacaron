@@ -12,9 +12,15 @@ import (
 	"io/ioutil"
 	"github.com/alecthomas/log4go"
 	"encoding/json"
+	"os"
 )
 
 func CoverImageHandler(ctx *macaron.Context) (result string){
+	err := ctx.Req.ParseForm()
+	if err != nil {
+		log4go.Error(err.Error())
+		panic(err)
+	}
 	bookIdStr := ctx.Req.Form.Get("bookId")
 	if len(bookIdStr) <1 {
 		br := &jsonobj.BaseRespone{Status:3,Message:"电子书id不得为空"}
@@ -40,8 +46,15 @@ func CoverImageHandler(ctx *macaron.Context) (result string){
 	txtDir,_ := util.GetResouceCenterDirByBookIdAndBookType(bookId,int(ty.Int64),dev)
 	chapter0Content,err := ioutil.ReadFile(fmt.Sprint(txtDir,"0.txt"))
 	if err != nil {
-		log4go.Error(err.Error())
-		panic(err)
+		_,subErr := os.Stat(txtDir)
+		br := &jsonobj.BaseRespone{}
+		if subErr != nil {
+
+		}
+		br.Status = 5
+		br.Message = "电子书正在制作中，稍后请求"
+		result = util.Obj2String(br)
+		return
 	}
 	chapter0 := &jsonobj.Chapter0{}
 	err = json.Unmarshal(chapter0Content,chapter0)

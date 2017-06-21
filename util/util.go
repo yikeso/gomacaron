@@ -17,7 +17,6 @@ import (
 	"github.com/yikeso/gomacaron/models"
 	"encoding/json"
 	"time"
-	"github.com/beego/bee/cmd/commands/rs"
 	"github.com/yikeso/gomacaron/config"
 )
 

@@ -4,7 +4,6 @@ import (
 	_ "github.com/yikeso/gomacaron/config"//加载配置文件
 	_ "github.com/yikeso/gomacaron/models"//初始化数据源
 	_ "github.com/yikeso/gomacaron/util"
-	_ "github.com/yikeso/gomacaron/task"//启动定时任务
 	"runtime"
 	l4g "github.com/alecthomas/log4go"
 	"net/http"
