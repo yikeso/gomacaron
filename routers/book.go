@@ -8,6 +8,9 @@ import (
 	"github.com/alecthomas/log4go"
 	"fmt"
 	"net/http"
+	"github.com/yikeso/gomacaron/jsonobj"
+	"github.com/yikeso/gomacaron/util"
+	"github.com/yikeso/gomacaron/controllers"
 )
 
 func GetRouters() (m *macaron.Macaron){
@@ -23,18 +26,23 @@ func GetRouters() (m *macaron.Macaron){
 	m.Use(logger())
 	//服务器异常捕获
 	m.Use(macaron.Recovery())
-	/*//500错误处理
-	m.InternalServerError()
+	//500错误处理
+	m.InternalServerError(serverError)
 	//404错误处理
-	m.NotFound()*/
-	m.Get("/", myHandleer)
+	m.NotFound(notFoundHandler)
+	m.Get("/book/coverimage",controllers.CoverImageHandler)
 	return m
 }
-
-func myHandleer(ctx *macaron.Context) (string){
-	return "the request path is:" + ctx.Req.RequestURI
+//处理404错误
+func notFoundHandler(ctx *macaron.Context) (string){
+	return fmt.Sprint("the request path :", ctx.Req.RequestURI," not exist!")
 }
-
+//处理500错误
+func serverError(ctx *macaron.Context) (string){
+	br := &jsonobj.BaseRespone{Status:1,Message:"系统异常，请联系管理员"}
+	return util.Obj2String(br)
+}
+//log日志
 func logger() macaron.Handler{
 	return func (ctx *macaron.Context){
 		start := time.Now()
