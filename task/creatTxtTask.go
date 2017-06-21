@@ -82,24 +82,7 @@ func CreateTxtByResourceCenter(rs *models.ResourceCenter,isDev bool)(err error){
 		err = errors.New(fmt.Sprint("id为：",rs.Id," 的电子书解析索引index失败\n",err.Error()))
 		return
 	}
-	var bookTxtDir,bookHtmlDir string;
-	if isDev {
-		bookTxtDir = "e:/bookTxtDir/"
-		bookHtmlDir = "e:/bookHtmlDir/"
-	}else {
-		bookTxtDir = "./bookTxtDir/"
-		bookHtmlDir = "./bookHtmlDir/"
-	}
-	datePath := fmt.Sprint(time.Unix(rs.Id*config.ID_TO_TIME,0).Format("2006/01/02"),
-		"/",rs.Id,"/")
-	switch rs.Type.Int64 {
-	case 7:
-		bookTxtDir = fmt.Sprint(bookTxtDir,"7article/",datePath)
-		bookHtmlDir = fmt.Sprint(bookHtmlDir,"7article/",datePath)
-	default :
-		bookTxtDir = fmt.Sprint(bookTxtDir,"6book/",datePath)
-		bookHtmlDir = fmt.Sprint(bookHtmlDir,"6book/",datePath)
-	}
+	bookTxtDir,bookHtmlDir := util.GetResouceCenterDirByBookIdAndBookType(rs.Id,int(rs.Type.Int64),isDev)
 	os.MkdirAll(bookTxtDir,0777)
 	os.MkdirAll(bookHtmlDir,0777)
 	chapterArray,_ := getChapterArrayByCharpterUrlList(resourceUrl,urlEntity.ChapterArray)

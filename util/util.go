@@ -15,6 +15,10 @@ import (
 	"errors"
 	"image"
 	"github.com/yikeso/gomacaron/models"
+	"encoding/json"
+	"time"
+	"github.com/beego/bee/cmd/commands/rs"
+	"github.com/yikeso/gomacaron/config"
 )
 
 var  blockLevelElements []string
@@ -61,6 +65,36 @@ type UrlEntity struct {
 	Cover string
 	Chapters string
 }
+
+func GetResouceCenterDirByBookIdAndBookType(bookId int64,ty int,dev bool)(txtDir string,htmlDir string){
+	if dev {
+		txtDir = "e:/bookTxtDir/"
+		htmlDir = "e:/bookHtmlDir/"
+	}else {
+		txtDir = "./bookTxtDir/"
+		htmlDir = "./bookHtmlDir/"
+	}
+	datePath := fmt.Sprint(time.Unix(bookId*config.ID_TO_TIME,0).Format("2006/01/02"),
+		"/",bookId,"/")
+	switch ty {
+	case 7:
+		txtDir = fmt.Sprint(txtDir,"7article/",datePath)
+		htmlDir = fmt.Sprint(htmlDir,"7article/",datePath)
+	default :
+		txtDir = fmt.Sprint(txtDir,"6book/",datePath)
+		htmlDir = fmt.Sprint(htmlDir,"6book/",datePath)
+	}
+	return
+}
+
+func Obj2String(v interface{})string{
+	d,err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return string(d)
+}
+
 //解析电子书索引得到相关属性
 func GetBookUrl(fileUrl string)(entity *UrlEntity,err error){
 	fmt.Println(fileUrl)
